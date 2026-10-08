@@ -1,38 +1,18 @@
-name: Deploy Worker
+name: Debug Secrets
+
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+
 jobs:
-  deploy:
+  debug:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v5
-      - run: npm ci
-
-      - name: Build & Deploy Worker
-        uses: cloudflare/wrangler-action@v3
-        id: deploy
-        with:
-          # Check https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          # Add a message to the deployment with the commit
-          command: versions upload --message "Deployed via GitHub Actions - commit ${{ github.sha }}"
-      - name: Get deployment URL
-        id: get-url
-        env:
-          WRANGLER_OUTPUT: ${{ steps.deploy.outputs.command-output }}
+      - name: Verificar secrets
         run: |
-          URL=$(echo "$WRANGLER_OUTPUT" | awk '/Version Preview URL:/ {gsub(/.*Version Preview URL: /, ""); print}')
-          echo "deployment-url=$URL" >> $GITHUB_OUTPUT
-
-      - name: Register Restate deployment
+          echo "Token length: ${#TOKEN}"
+          echo "Account length: ${#ACCOUNT}"
+          if [ -z "$TOKEN" ]; then echo "❌ TOKEN VAZIO"; else echo "✅ TOKEN OK"; fi
+          if [ -z "$ACCOUNT" ]; then echo "❌ ACCOUNT VAZIO"; else echo "✅ ACCOUNT OK"; fi
         env:
-          # Admin URL of your Cloud environment. You can find it in Developers > Admin URL: https://cloud.restate.dev/to/developers/integration#admin
-          RESTATE_ADMIN_URL: ${{ secrets.RESTATE_ADMIN_URL }}
-          # Auth token with Admin Role. To get one, go to Developers > API Keys > Create API Key: https://cloud.restate.dev?createApiKey=true&createApiKeyDescription=deployment-key&createApiKeyRole=rst:role::AdminAccess
-          RESTATE_AUTH_TOKEN: ${{ secrets.RESTATE_AUTH_TOKEN }}
-        run: npx -y @restatedev/restate deployment register -y ${{ steps.get-url.outputs.deployment-url }}
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
